@@ -4,12 +4,10 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { App } from "./App"
 import { seedCompany } from "./data/workspace"
-import { AUTH_STORAGE_KEY } from "./state/AuthContext"
 import { LANGUAGE_STORAGE_KEY } from "./state/LanguageContext"
 import { WORKSPACE_STORAGE_KEY } from "./state/WorkspaceContext"
 
-function open(path: string, authenticated = false) {
-  if (authenticated) window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ username: "demo", authenticatedAt: new Date().toISOString() }))
+function open(path: string) {
   window.history.pushState({}, "", path)
   return render(<App />)
 }
@@ -17,42 +15,28 @@ function open(path: string, authenticated = false) {
 beforeEach(() => { window.localStorage.clear(); window.history.pushState({}, "", "/") })
 
 describe("WaterOps production workspace", () => {
-  it("protects routes and signs in with demo credentials without storing the password", async () => {
-    const user = userEvent.setup()
+  it("opens deep links directly in the ClearFlow workspace", async () => {
     open("/reports/SR-2026-001")
-    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument()
-    await user.type(screen.getByLabelText("Username"), "demo")
-    await user.type(screen.getByLabelText("Password"), "demo")
-    await user.click(screen.getByRole("button", { name: /Sign in/ }))
     expect(await screen.findByRole("heading", { name: "SR-2026-001" }, { timeout: 3000 })).toBeInTheDocument()
-    expect(window.localStorage.getItem(AUTH_STORAGE_KEY)).not.toContain("password")
-  })
-
-  it("rejects invalid credentials with an inline error", async () => {
-    const user = userEvent.setup(); open("/login")
-    await user.type(await screen.findByLabelText("Username"), "wrong")
-    await user.type(screen.getByLabelText("Password"), "wrong")
-    await user.click(screen.getByRole("button", { name: /Sign in/ }))
-    expect(await screen.findByRole("alert")).toHaveTextContent("Incorrect username or password")
   })
 
   it("switches between English and Hebrew, persists the choice, and applies RTL", async () => {
-    const user = userEvent.setup(); open("/login")
-    await user.click(await screen.findByRole("button", { name: "Switch to Hebrew" }))
-    expect(await screen.findByRole("heading", { name: "ברוכים השבים" })).toBeInTheDocument()
+    const user = userEvent.setup(); open("/")
+    await user.click((await screen.findAllByRole("button", { name: "Switch to Hebrew" }))[0])
+    expect(await screen.findByRole("heading", { name: "בוקר טוב, מאיה" })).toBeInTheDocument()
     expect(document.documentElement).toHaveAttribute("lang", "he")
     expect(document.documentElement).toHaveAttribute("dir", "rtl")
     expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("he")
 
     await user.click(screen.getByRole("button", { name: "החלפה לאנגלית" }))
-    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Good morning, Maya" })).toBeInTheDocument()
     expect(document.documentElement).toHaveAttribute("lang", "en")
     expect(document.documentElement).toHaveAttribute("dir", "ltr")
     expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe("en")
   })
 
   it("shows the complete operational overview", async () => {
-    open("/", true)
+    open("/")
     expect(await screen.findByRole("heading", { name: "Good morning, Maya" })).toBeInTheDocument()
     expect(screen.getByText("Active customers")).toBeInTheDocument()
     expect(screen.getByText("Analyzed reports")).toBeInTheDocument()
@@ -63,13 +47,13 @@ describe("WaterOps production workspace", () => {
     const stored = structuredClone(seedCompany) as unknown as Record<string, unknown>
     stored.capturedReports = [{ id: "broken-report" }]
     window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(stored))
-    open("/reports", true)
+    open("/reports")
     expect(await screen.findByRole("heading", { name: "Source Reports" })).toBeInTheDocument()
     expect(screen.getByText("Showing 20 of 20 reports")).toBeInTheDocument()
   })
 
   it("navigates the customer and source-report hierarchy", async () => {
-    const user = userEvent.setup(); open("/customers", true)
+    const user = userEvent.setup(); open("/customers")
     await user.click(await screen.findByRole("link", { name: /Harbor Grand Hotel/ }))
     expect(await screen.findByRole("heading", { name: "Harbor Grand Hotel" })).toBeInTheDocument()
     await user.click(screen.getByRole("tab", { name: /Systems/ }))
@@ -81,7 +65,7 @@ describe("WaterOps production workspace", () => {
   })
 
   it("adds a manual report without changing service history", async () => {
-    const user = userEvent.setup(); open("/reports", true)
+    const user = userEvent.setup(); open("/reports")
     await user.click(await screen.findByRole("link", { name: "Add report" }))
     expect(await screen.findByRole("heading", { name: "Add report" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /Enter manually/ }))
@@ -107,7 +91,7 @@ describe("WaterOps production workspace", () => {
   })
 
   it("reviews a PDF upload locally and stores no file bytes", async () => {
-    const user = userEvent.setup(); open("/reports/new", true)
+    const user = userEvent.setup(); open("/reports/new")
     expect(await screen.findByRole("heading", { name: "Add report" })).toBeInTheDocument()
     await user.click(await screen.findByRole("button", { name: /Upload report/ }))
     expect(await screen.findByRole("heading", { name: "Upload report PDF" })).toBeInTheDocument()
@@ -121,7 +105,7 @@ describe("WaterOps production workspace", () => {
   })
 
   it("validates report context and moves focus to the error summary", async () => {
-    const user = userEvent.setup(); open("/reports/new", true)
+    const user = userEvent.setup(); open("/reports/new")
     await user.click(await screen.findByRole("button", { name: /Enter manually/ }))
     await user.click(await screen.findByRole("button", { name: /Continue to measurements/ }))
     const summary = await screen.findByRole("alert")
@@ -130,7 +114,7 @@ describe("WaterOps production workspace", () => {
   })
 
   it("guards in-app navigation while report changes are unsaved", async () => {
-    const user = userEvent.setup(); open("/reports/new", true)
+    const user = userEvent.setup(); open("/reports/new")
     await user.click(await screen.findByRole("button", { name: /Enter manually/ }))
     await screen.findByRole("heading", { name: "Report information" })
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false)
@@ -143,7 +127,7 @@ describe("WaterOps production workspace", () => {
   })
 
   it("localizes the new report workflow in Hebrew", async () => {
-    const user = userEvent.setup(); open("/reports/new", true)
+    const user = userEvent.setup(); open("/reports/new")
     expect(await screen.findByRole("heading", { name: "Add report" })).toBeInTheDocument()
     await user.click(screen.getAllByRole("button", { name: "Switch to Hebrew" })[0])
     expect(await screen.findByRole("heading", { name: "הוספת דוח" })).toBeInTheDocument()
@@ -153,7 +137,7 @@ describe("WaterOps production workspace", () => {
   })
 
   it("opens a finding, records a decision, and reopens it", async () => {
-    const user = userEvent.setup(); open("/findings", true)
+    const user = userEvent.setup(); open("/findings")
     expect(await screen.findByRole("heading", { name: "Review Queue" })).toBeInTheDocument()
     await user.click(screen.getAllByRole("link").find((link) => link.getAttribute("href")?.startsWith("/findings/"))!)
     expect(await screen.findByRole("button", { name: "Accept finding" })).toBeInTheDocument()
@@ -164,7 +148,7 @@ describe("WaterOps production workspace", () => {
   })
 
   it("accepts assistant text and performs no network work", async () => {
-    const user = userEvent.setup(); open("/", true)
+    const user = userEvent.setup(); open("/")
     await user.click(await screen.findByRole("button", { name: "Ask WaterOps" }))
     await user.type(screen.getByLabelText("Ask WaterOps a question"), "What needs review?")
     await user.click(screen.getByRole("button", { name: "Send question" }))
@@ -172,7 +156,7 @@ describe("WaterOps production workspace", () => {
   })
 
   it("has no structural accessibility violations on the queue", async () => {
-    const { container } = open("/findings", true)
+    const { container } = open("/findings")
     await screen.findByRole("heading", { name: "Review Queue" })
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } })
     expect(results.violations.map((violation) => violation.id)).toEqual([])
@@ -180,17 +164,15 @@ describe("WaterOps production workspace", () => {
 
   it("has no structural accessibility violations on report entry", async () => {
     const user = userEvent.setup()
-    const { container } = open("/reports/new", true)
+    const { container } = open("/reports/new")
     await user.click(await screen.findByRole("button", { name: /Enter manually/ }))
     await screen.findByRole("heading", { name: "Report information" })
     const results = await axe.run(container, { rules: { "color-contrast": { enabled: false } } })
     expect(results.violations.map((violation) => violation.id)).toEqual([])
   })
 
-  it("signs out without clearing workspace data", async () => {
-    const user = userEvent.setup(); open("/", true)
-    await user.click(await screen.findByRole("button", { name: "Sign out" }))
-    await waitFor(() => expect(screen.getByRole("heading", { name: "Welcome back" })).toBeInTheDocument())
-    expect(window.localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+  it("redirects the former login route to the workspace", async () => {
+    open("/login")
+    expect(await screen.findByRole("heading", { name: "Good morning, Maya" })).toBeInTheDocument()
   })
 })

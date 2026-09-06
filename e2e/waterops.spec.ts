@@ -1,36 +1,27 @@
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test } from "@playwright/test"
 
-async function signIn(page: import("@playwright/test").Page, target = "/") {
+async function openWorkspace(page: import("@playwright/test").Page, target = "/") {
   await page.goto(target)
   await page.evaluate(() => localStorage.clear())
   await page.reload()
-  await page.getByLabel("Username").fill("demo")
-  await page.locator("#password").fill("demo")
-  await page.locator("form").evaluate((form: HTMLFormElement) => form.requestSubmit())
 }
 
-test("authenticates and returns to a protected deep link", async ({ page }) => {
-  await signIn(page, "/reports/SR-2026-001")
+test("opens a workspace deep link immediately", async ({ page }) => {
+  await openWorkspace(page, "/reports/SR-2026-001")
   await expect(page.getByRole("heading", { name: "SR-2026-001" })).toBeVisible()
-  const session = await page.evaluate(() => localStorage.getItem("waterops.auth-session.v1"))
-  expect(session).not.toContain("password")
 })
 
 test("switches between Hebrew and English and keeps the selected language", async ({ page }) => {
-  await page.goto("/login")
+  await page.goto("/")
   await page.evaluate(() => localStorage.clear())
   await page.reload()
 
   await page.getByRole("button", { name: "Switch to Hebrew" }).click()
-  await expect(page.getByRole("heading", { name: "ברוכים השבים" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "בוקר טוב, מאיה" })).toBeVisible()
   await expect(page.locator("html")).toHaveAttribute("lang", "he")
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl")
 
-  await page.locator("#username").fill("demo")
-  await page.locator("#password").fill("demo")
-  await page.locator("form").evaluate((form: HTMLFormElement) => form.requestSubmit())
-  await expect(page.getByRole("heading", { name: "בוקר טוב, מאיה" })).toBeVisible()
   await page.reload()
   await expect(page.getByRole("heading", { name: "בוקר טוב, מאיה" })).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem("waterops.language.v1"))).toBe("he")
@@ -43,7 +34,7 @@ test("switches between Hebrew and English and keeps the selected language", asyn
 })
 
 test("navigates the operational workspace and records a decision", async ({ page }, testInfo) => {
-  await signIn(page)
+  await openWorkspace(page)
   await expect(page.getByRole("heading", { name: "Good morning, Maya" })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath("overview.png"), fullPage: true })
   const mobileMenu = page.getByRole("button", { name: "Open navigation" })
@@ -59,7 +50,7 @@ test("navigates the operational workspace and records a decision", async ({ page
 })
 
 test("edits staff and preserves the profile", async ({ page }) => {
-  await signIn(page, "/team")
+  await openWorkspace(page, "/team")
   await expect(page.getByRole("heading", { name: "Team" })).toBeVisible()
   await page.getByRole("button", { name: "Edit" }).first().click()
   await page.getByLabel("Full name").fill("Maya Chen-Wells")
@@ -70,7 +61,7 @@ test("edits staff and preserves the profile", async ({ page }) => {
 })
 
 test("adds a manual source report and preserves it across reloads", async ({ page }) => {
-  await signIn(page, "/reports")
+  await openWorkspace(page, "/reports")
   await page.getByRole("link", { name: "Add report" }).click()
   await page.getByRole("button", { name: /Enter manually/ }).click()
   await expect(page.getByRole("heading", { name: "Report information" })).toBeVisible()
@@ -98,7 +89,7 @@ test("adds a manual source report and preserves it across reloads", async ({ pag
 
 test("prepares an uploaded PDF for structured review without network work", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" })
-  await signIn(page, "/reports/new")
+  await openWorkspace(page, "/reports/new")
   let requests = 0
   page.on("request", (request) => { if (request.resourceType() === "fetch" || request.resourceType() === "xhr") requests += 1 })
   await page.getByRole("button", { name: /Upload report/ }).click()
@@ -114,7 +105,7 @@ test("prepares an uploaded PDF for structured review without network work", asyn
 })
 
 test("assistant is local and reports missing model configuration", async ({ page }) => {
-  await signIn(page)
+  await openWorkspace(page)
   let requests = 0
   page.on("request", (request) => { if (request.resourceType() === "fetch" || request.resourceType() === "xhr") requests += 1 })
   await page.getByRole("button", { name: "Ask WaterOps" }).last().click()
@@ -128,7 +119,7 @@ test("assistant is local and reports missing model configuration", async ({ page
 
 test("has no serious accessibility violations or horizontal overflow", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" })
-  await signIn(page, "/findings")
+  await openWorkspace(page, "/findings")
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze()
   expect(results.violations.filter((v) => ["serious", "critical"].includes(v.impact ?? ""))).toEqual([])
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1)

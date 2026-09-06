@@ -1,10 +1,9 @@
-import { Buildings, CheckCircle, FileText, House, ListChecks, SignOut, Sparkle, UsersThree, Waves, X } from "@phosphor-icons/react"
+import { Buildings, CheckCircle, FileText, House, ListChecks, Sparkle, UsersThree, Waves, X } from "@phosphor-icons/react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { lazy, Suspense, useState } from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import { cn } from "../lib/cn"
 import { roleLabels } from "../lib/workspace"
-import { useAuth } from "../state/AuthContext"
 import { useDecisions } from "../state/DecisionContext"
 import { useWorkspace } from "../state/WorkspaceContext"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./animate-ui/Dialog"
@@ -38,11 +37,10 @@ function Toast() {
 }
 
 function UserPanel({ compact = false }: { compact?: boolean }) {
-  const { signOut } = useAuth()
   const { company } = useWorkspace()
   const user = company.users.find((item) => item.id === "maya-chen") ?? company.users[0]
   if (!user) return null
-  return <div className={cn("rounded-2xl border border-slate-200 bg-slate-50", compact ? "p-3" : "p-3.5")}><div className="flex items-center gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-slate-950 text-[10px] font-bold text-white">{user.initials}</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-slate-950">{user.name}</p><p className="truncate text-[10px] text-slate-500">{roleLabels[user.role]}</p></div><button onClick={signOut} aria-label="Sign out" title="Sign out" className="grid size-10 cursor-pointer place-items-center rounded-xl text-slate-500 hover:bg-white hover:text-slate-950 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-blue-500/20"><SignOut size={18} weight="bold" /></button></div></div>
+  return <div className={cn("rounded-2xl border border-slate-200 bg-slate-50", compact ? "p-3" : "p-3.5")}><div className="flex items-center gap-3"><span className="grid size-9 shrink-0 place-items-center rounded-xl bg-slate-950 text-[10px] font-bold text-white">{user.initials}</span><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-slate-950">{user.name}</p><p className="truncate text-[10px] text-slate-500">{roleLabels[user.role]}</p></div></div></div>
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {

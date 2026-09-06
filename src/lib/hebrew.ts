@@ -12,7 +12,6 @@ const exactTranslations: Record<string, string> = {
   "Primary": "ניווט ראשי",
   "Mobile primary": "ניווט ראשי בנייד",
   "Current tenant": "החברה הנוכחית",
-  "Sign out": "התנתקות",
   "Open navigation": "פתיחת ניווט",
   "Close navigation": "סגירת ניווט",
   "Close dialog": "סגירת חלון",
