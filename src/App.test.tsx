@@ -12,7 +12,7 @@ function open(path: string) {
   return render(<App />)
 }
 
-beforeEach(() => { window.localStorage.clear(); window.history.pushState({}, "", "/") })
+beforeEach(() => { window.localStorage.clear(); window.localStorage.setItem(LANGUAGE_STORAGE_KEY, "en"); window.history.pushState({}, "", "/") })
 
 describe("WaterOps production workspace", () => {
   it("opens deep links directly in the ClearFlow workspace", async () => {
@@ -21,7 +21,15 @@ describe("WaterOps production workspace", () => {
   })
 
   it("switches between English and Hebrew, persists the choice, and applies RTL", async () => {
+    window.localStorage.removeItem(LANGUAGE_STORAGE_KEY)
     const user = userEvent.setup(); open("/")
+    expect(await screen.findByRole("heading", { name: "בוקר טוב, מאיה" })).toBeInTheDocument()
+    expect(document.documentElement).toHaveAttribute("lang", "he")
+    expect(document.documentElement).toHaveAttribute("dir", "rtl")
+    await user.click((await screen.findAllByRole("button", { name: "החלפה לאנגלית" }))[0])
+    expect(await screen.findByRole("heading", { name: "Good morning, Maya" })).toBeInTheDocument()
+    expect(document.documentElement).toHaveAttribute("lang", "en")
+    expect(document.documentElement).toHaveAttribute("dir", "ltr")
     await user.click((await screen.findAllByRole("button", { name: "Switch to Hebrew" }))[0])
     expect(await screen.findByRole("heading", { name: "בוקר טוב, מאיה" })).toBeInTheDocument()
     expect(document.documentElement).toHaveAttribute("lang", "he")

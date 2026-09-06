@@ -4,6 +4,7 @@ import { expect, test } from "@playwright/test"
 async function openWorkspace(page: import("@playwright/test").Page, target = "/") {
   await page.goto(target)
   await page.evaluate(() => localStorage.clear())
+  await page.evaluate(() => localStorage.setItem("waterops.language.v1", "en"))
   await page.reload()
 }
 
@@ -17,7 +18,6 @@ test("switches between Hebrew and English and keeps the selected language", asyn
   await page.evaluate(() => localStorage.clear())
   await page.reload()
 
-  await page.getByRole("button", { name: "Switch to Hebrew" }).click()
   await expect(page.getByRole("heading", { name: "בוקר טוב, מאיה" })).toBeVisible()
   await expect(page.locator("html")).toHaveAttribute("lang", "he")
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl")

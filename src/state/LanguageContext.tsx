@@ -13,9 +13,9 @@ const LanguageContext = createContext<LanguageContextValue | null>(null)
 
 function loadLanguage(): Language {
   try {
-    return window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === "he" ? "he" : "en"
+    return window.localStorage.getItem(LANGUAGE_STORAGE_KEY) === "en" ? "en" : "he"
   } catch {
-    return "en"
+    return "he"
   }
 }
 
