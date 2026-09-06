@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.waterops.pid
+.waterops.log
+.waterops.error.log
+*.local
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
